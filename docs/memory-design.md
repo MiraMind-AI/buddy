@@ -32,6 +32,7 @@ Facts are scoped to a user. They are never shared between users.
 After each conversation ends (or periodically during a long session), the system sends the recent conversation to the LLM with a prompt that asks it to identify new facts worth remembering. The output is a list of candidate memories.
 
 Each candidate includes:
+
 - `content`: the fact in plain language
 - `confidence`: a score from 0 to 1 indicating how certain the extraction is
 - `source_message_id`: which message triggered the extraction
@@ -43,6 +44,7 @@ Candidates with confidence below a threshold are held in a review queue rather t
 ## Memory Review
 
 The review queue holds uncertain memory candidates. The system can:
+
 - Auto-approve candidates above a secondary confidence threshold after a delay
 - Surface them to the user for explicit confirmation ("I noticed you mentioned X. Should I remember that?")
 
@@ -55,6 +57,7 @@ Users can disable the in-conversation prompts if they prefer not to be interrupt
 Each stored memory is embedded using a text embedding model and stored in PostgreSQL with the pgvector extension.
 
 At the start of each conversation, and at configurable intervals during a session, the system:
+
 1. Embeds the current conversation context or user message
 2. Queries pgvector for the top-k semantically similar memories
 3. Injects retrieved memories into the system prompt
@@ -66,11 +69,13 @@ The number of injected memories and the similarity threshold are configurable.
 ## Memory Confidence
 
 Each memory has a `confidence` field (0.0 to 1.0). Confidence decreases if:
+
 - A later message contradicts the memory
 - The memory has not been referenced in a long time
 - The user explicitly marks it as incorrect
 
 Confidence increases if:
+
 - The user confirms the memory
 - The same fact is re-extracted from a later conversation
 
@@ -100,6 +105,7 @@ The system does not attempt to classify memories as sensitive automatically. Ins
 ## User Consent
 
 Memory storage requires explicit opt-in during onboarding. Users can:
+
 - Enable or disable memory extraction at any time
 - Pause memory storage for a specific conversation
 - Export all memories as JSON
@@ -112,6 +118,7 @@ The memory consent state is stored per user and checked before any extraction jo
 ## Audit Log
 
 Every memory operation (creation, update, deletion, retrieval) is logged with:
+
 - Timestamp
 - User ID
 - Operation type

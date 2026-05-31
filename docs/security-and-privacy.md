@@ -47,6 +47,7 @@ Memory deletion uses soft-delete. After a configurable retention period (default
 ## Raw Audio
 
 Raw audio from microphone input is never stored. The audio is:
+
 1. Captured in the browser
 2. Sent to the backend for transcription
 3. Immediately discarded after transcription

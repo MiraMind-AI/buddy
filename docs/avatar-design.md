@@ -21,13 +21,13 @@ The avatar canvas runs independently of the chat and voice state components. It 
 
 The avatar has five defined states:
 
-| State | Description |
-|---|---|
-| `idle` | Subtle ambient animation. Breathing, slight head movement. |
-| `listening` | Alert posture. Visual indication that input is being captured. |
-| `thinking` | Processing animation. A visual cue that a response is being generated. |
-| `speaking` | Mouth movement driven by audio amplitude or visemes. Active body language. |
-| `error` | Neutral, slightly withdrawn. Used when a failure occurs. |
+| State       | Description                                                                |
+| ----------- | -------------------------------------------------------------------------- |
+| `idle`      | Subtle ambient animation. Breathing, slight head movement.                 |
+| `listening` | Alert posture. Visual indication that input is being captured.             |
+| `thinking`  | Processing animation. A visual cue that a response is being generated.     |
+| `speaking`  | Mouth movement driven by audio amplitude or visemes. Active body language. |
+| `error`     | Neutral, slightly withdrawn. Used when a failure occurs.                   |
 
 State transitions are animated. Abrupt jumps between states are avoided.
 
@@ -36,11 +36,13 @@ State transitions are animated. Abrupt jumps between states are avoided.
 ## Mouth Movement
 
 Phase M6 implements amplitude-based mouth movement:
+
 - The frontend measures audio amplitude from the TTS output in real time
 - Amplitude is mapped to a blend shape weight on the avatar's jaw or mouth mesh
 - The result is approximate but visually convincing for most speech patterns
 
 Phase M9 or later adds viseme-based lip sync:
+
 - The TTS service or a separate analysis step provides phoneme timing
 - Phonemes are mapped to MPEG-4 or ARKit viseme blend shapes
 - Mouth movement becomes more accurate and less mechanical
@@ -50,6 +52,7 @@ Phase M9 or later adds viseme-based lip sync:
 ## Avatar Model
 
 Phase M6 uses a placeholder:
+
 - A simple geometric head with enough mesh detail to show mouth movement
 - Or a low-poly stylized character model under a permissive license
 
@@ -60,6 +63,7 @@ The placeholder is designed so that a real character model can be dropped in by 
 ## Performance Requirements
 
 The avatar must not degrade conversation performance:
+
 - Canvas rendering targets 60fps
 - Avatar animations run in the Three.js render loop, not the React render cycle
 - No avatar operation should block the main thread during voice recording or API calls
@@ -81,7 +85,7 @@ The avatar reads from a dedicated slice of the Zustand store:
 
 ```ts
 interface AvatarState {
-  state: 'idle' | 'listening' | 'thinking' | 'speaking' | 'error';
+  state: "idle" | "listening" | "thinking" | "speaking" | "error";
   amplitude: number; // 0 to 1, updated at ~60fps during speaking
 }
 ```

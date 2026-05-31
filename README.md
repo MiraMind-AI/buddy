@@ -12,15 +12,15 @@ Buddy is a web-based personal voice companion. Users can speak with the assistan
 
 ## Technology Overview
 
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js, TypeScript, Tailwind CSS, Framer Motion, React Three Fiber |
-| State / Data | Zustand, TanStack Query |
-| Backend | Python, FastAPI, Pydantic, SQLModel |
-| Database | PostgreSQL, pgvector |
-| Cache / Queue | Redis (optional) |
-| AI Layer | Abstracted interfaces for LLM, TTS, STT, Embeddings |
-| Infrastructure | Docker Compose, GitHub Actions |
+| Layer          | Technology                                                          |
+| -------------- | ------------------------------------------------------------------- |
+| Frontend       | Next.js, TypeScript, Tailwind CSS, Framer Motion, React Three Fiber |
+| State / Data   | Zustand, TanStack Query                                             |
+| Backend        | Python, FastAPI, Pydantic, SQLModel                                 |
+| Database       | PostgreSQL, pgvector                                                |
+| Cache / Queue  | Redis (optional)                                                    |
+| AI Layer       | Abstracted interfaces for LLM, TTS, STT, Embeddings                 |
+| Infrastructure | Docker Compose, GitHub Actions                                      |
 
 ## Repository Structure
 
@@ -91,18 +91,18 @@ In short:
 
 See [docs/development-plan.md](docs/development-plan.md) for the full development plan.
 
-| Milestone | Description |
-|---|---|
-| M1 | Project foundation |
-| M2 | Conversation core |
-| M3 | Voice infrastructure |
-| M4 | Memory system |
-| M5 | User control and settings |
-| M6 | Avatar foundation |
-| M7 | Human conversation quality |
-| M8 | Deployment and observability |
-| M9 | Stable beta |
-| M10 | Production-ready version |
+| Milestone | Description                  |
+| --------- | ---------------------------- |
+| M1        | Project foundation           |
+| M2        | Conversation core            |
+| M3        | Voice infrastructure         |
+| M4        | Memory system                |
+| M5        | User control and settings    |
+| M6        | Avatar foundation            |
+| M7        | Human conversation quality   |
+| M8        | Deployment and observability |
+| M9        | Stable beta                  |
+| M10       | Production-ready version     |
 
 ## Privacy and Memory
 

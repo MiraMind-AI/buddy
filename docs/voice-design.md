@@ -8,9 +8,10 @@ Voice is the primary interaction mode for Buddy. The architecture must support l
 
 ## Microphone Input
 
-Voice input is captured in the browser using the Web Audio API (`getUserMedia`). The user grants microphone permission once; the browser caches the grant. 
+Voice input is captured in the browser using the Web Audio API (`getUserMedia`). The user grants microphone permission once; the browser caches the grant.
 
 Input modes:
+
 - **Push-to-talk:** User holds a button or key while speaking. Simple, reliable, no false starts.
 - **Voice activity detection (VAD):** The browser detects speech start and end automatically. More natural, but requires tuning to avoid cutting off or triggering on background noise.
 
@@ -43,6 +44,7 @@ State is managed in a Zustand store on the frontend. The avatar component reads 
 In the initial implementation, audio is recorded as a blob in the browser and sent to the backend as a multipart upload. The backend calls the STT service (Whisper via OpenAI API) and returns the transcript.
 
 Later phases explore:
+
 - Streaming transcription for reduced latency
 - OpenAI Realtime API which handles transcription and response in a single session
 
@@ -61,6 +63,7 @@ Streaming audio means the first audio chunk can play before the full response is
 ## Interrupt Handling
 
 If the user starts speaking while Buddy is responding:
+
 1. The frontend detects new voice activity
 2. The current audio playback is stopped
 3. A cancellation signal is sent to the backend
@@ -79,11 +82,11 @@ The OpenAI Realtime API maintains a persistent WebSocket session and handles STT
 
 ## Latency Targets
 
-| Stage | Target |
-|---|---|
-| Microphone to transcription | < 1.5s |
+| Stage                             | Target |
+| --------------------------------- | ------ |
+| Microphone to transcription       | < 1.5s |
 | Transcription to first audio byte | < 1.0s |
-| Total response start latency | < 2.5s |
+| Total response start latency      | < 2.5s |
 
 These are initial targets for the non-realtime implementation. The Realtime API phase targets < 1s total.
 

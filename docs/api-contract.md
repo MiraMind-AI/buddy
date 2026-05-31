@@ -13,6 +13,7 @@ All endpoints require `Authorization: Bearer <token>` unless marked as public.
 Returns service status.
 
 **Response 200**
+
 ```json
 {
   "status": "ok",
@@ -27,6 +28,7 @@ Returns service status.
 ### POST /api/v1/auth/register (public)
 
 **Body**
+
 ```json
 {
   "email": "user@example.com",
@@ -35,6 +37,7 @@ Returns service status.
 ```
 
 **Response 201**
+
 ```json
 {
   "id": "uuid",
@@ -46,6 +49,7 @@ Returns service status.
 ### POST /api/v1/auth/login (public)
 
 **Body**
+
 ```json
 {
   "email": "user@example.com",
@@ -54,6 +58,7 @@ Returns service status.
 ```
 
 **Response 200**
+
 ```json
 {
   "access_token": "jwt",
@@ -70,6 +75,7 @@ Returns service status.
 Returns the authenticated user.
 
 **Response 200**
+
 ```json
 {
   "id": "uuid",
@@ -88,6 +94,7 @@ Returns the authenticated user.
 Creates a new conversation.
 
 **Body**
+
 ```json
 {
   "title": "Optional title"
@@ -95,6 +102,7 @@ Creates a new conversation.
 ```
 
 **Response 201**
+
 ```json
 {
   "id": "uuid",
@@ -108,6 +116,7 @@ Creates a new conversation.
 Returns all conversations for the authenticated user.
 
 **Response 200**
+
 ```json
 [
   {
@@ -125,6 +134,7 @@ Returns all conversations for the authenticated user.
 Returns a single conversation with its messages.
 
 **Response 200**
+
 ```json
 {
   "id": "uuid",
@@ -146,6 +156,7 @@ Returns a single conversation with its messages.
 Sends a message and returns the assistant response.
 
 **Body**
+
 ```json
 {
   "content": "Hello"
@@ -153,6 +164,7 @@ Sends a message and returns the assistant response.
 ```
 
 **Response 200**
+
 ```json
 {
   "id": "uuid",
@@ -173,6 +185,7 @@ Returns all memories for the authenticated user.
 **Query params:** `page`, `limit`, `search`
 
 **Response 200**
+
 ```json
 [
   {
@@ -190,6 +203,7 @@ Returns all memories for the authenticated user.
 Creates a memory manually.
 
 **Body**
+
 ```json
 {
   "content": "User is learning Spanish."
@@ -197,6 +211,7 @@ Creates a memory manually.
 ```
 
 **Response 201**
+
 ```json
 {
   "id": "uuid",
@@ -212,6 +227,7 @@ Creates a memory manually.
 Updates a memory's content or reviewed status.
 
 **Body**
+
 ```json
 {
   "content": "Updated fact.",
@@ -238,6 +254,7 @@ Accepts audio and returns a transcript.
 **Body:** `multipart/form-data` with `audio` file field.
 
 **Response 200**
+
 ```json
 {
   "transcript": "..."
@@ -249,6 +266,7 @@ Accepts audio and returns a transcript.
 Initiates a voice session (future: Realtime API).
 
 **Response 200**
+
 ```json
 {
   "session_id": "uuid",
@@ -265,6 +283,7 @@ Initiates a voice session (future: Realtime API).
 Returns the current avatar configuration for the authenticated user.
 
 **Response 200**
+
 ```json
 {
   "model": "default",
@@ -284,12 +303,12 @@ All errors follow this shape:
 }
 ```
 
-| Code | Meaning |
-|---|---|
-| 400 | Bad request, validation error |
-| 401 | Not authenticated |
-| 403 | Forbidden |
-| 404 | Not found |
-| 422 | Unprocessable entity (Pydantic validation) |
-| 429 | Rate limit exceeded |
-| 500 | Internal server error |
+| Code | Meaning                                    |
+| ---- | ------------------------------------------ |
+| 400  | Bad request, validation error              |
+| 401  | Not authenticated                          |
+| 403  | Forbidden                                  |
+| 404  | Not found                                  |
+| 422  | Unprocessable entity (Pydantic validation) |
+| 429  | Rate limit exceeded                        |
+| 500  | Internal server error                      |

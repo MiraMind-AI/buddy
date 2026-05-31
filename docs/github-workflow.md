@@ -2,14 +2,14 @@
 
 ## Branch Strategy
 
-| Branch | Purpose |
-|---|---|
-| `main` | Stable, deployable. Never commit directly. |
-| `dev` | Integration branch. All feature branches merge here. |
-| `feature/<name>` | New features or larger changes. |
-| `fix/<name>` | Bug fixes. |
-| `docs/<name>` | Documentation-only changes. |
-| `chore/<name>` | Tooling, config, dependency updates. |
+| Branch           | Purpose                                              |
+| ---------------- | ---------------------------------------------------- |
+| `main`           | Stable, deployable. Never commit directly.           |
+| `dev`            | Integration branch. All feature branches merge here. |
+| `feature/<name>` | New features or larger changes.                      |
+| `fix/<name>`     | Bug fixes.                                           |
+| `docs/<name>`    | Documentation-only changes.                          |
+| `chore/<name>`   | Tooling, config, dependency updates.                 |
 
 ## Typical Flow
 
@@ -37,16 +37,16 @@ test: add unit tests for MemoryService
 
 ## Issue Labels
 
-| Label | Meaning |
-|---|---|
-| `backend` | Backend work only |
-| `frontend` | Frontend work only |
-| `fullstack` | Touches both |
-| `bug` | Something broken |
-| `documentation` | Docs only |
-| `infra` | Infrastructure or CI |
-| `blocked` | Cannot proceed |
-| `good first issue` | Good entry point |
+| Label              | Meaning              |
+| ------------------ | -------------------- |
+| `backend`          | Backend work only    |
+| `frontend`         | Frontend work only   |
+| `fullstack`        | Touches both         |
+| `bug`              | Something broken     |
+| `documentation`    | Docs only            |
+| `infra`            | Infrastructure or CI |
+| `blocked`          | Cannot proceed       |
+| `good first issue` | Good entry point     |
 
 ## Pull Request Size
 
