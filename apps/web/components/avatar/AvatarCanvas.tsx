@@ -1,81 +1,88 @@
-"use client";
+"use client"
 
-import { Canvas, useFrame } from "@react-three/fiber";
-import { useRef } from "react";
-import type { Mesh } from "three";
+import type { AvatarState } from "@/features/avatar/useAvatar"
+import { cn } from "@/lib/utils/cn"
 
-import type { AvatarState } from "@/features/avatar/useAvatar";
-
-const stateColor: Record<AvatarState, string> = {
-  idle: "#8b7cf6",
-  listening: "#34d399",
-  thinking: "#f59e0b",
-  speaking: "#38bdf8",
-  error: "#fb7185",
-};
-
-function AvatarModel({ state }: { state: AvatarState }) {
-  const headRef = useRef<Mesh>(null);
-  const mouthRef = useRef<Mesh>(null);
-  const pulse =
-    state === "listening" ? 0.08 : state === "thinking" ? 0.04 : 0.02;
-
-  useFrame(({ clock }, delta) => {
-    if (!headRef.current || !mouthRef.current) {
-      return;
-    }
-
-    const elapsed = clock.getElapsedTime();
-    headRef.current.rotation.y += delta * 0.35;
-    headRef.current.position.y = Math.sin(elapsed * 1.4) * pulse;
-    mouthRef.current.scale.y =
-      state === "thinking" ? 1 + Math.sin(elapsed * 7) * 0.45 : 1;
-  });
-
-  return (
-    <group>
-      <mesh ref={headRef} position={[0, 0.18, 0]}>
-        <sphereGeometry args={[1, 48, 48]} />
-        <meshStandardMaterial
-          color={stateColor[state]}
-          roughness={0.34}
-          metalness={0.12}
-        />
-      </mesh>
-      <mesh position={[-0.34, 0.35, 0.86]}>
-        <sphereGeometry args={[0.08, 24, 24]} />
-        <meshStandardMaterial color="#111111" />
-      </mesh>
-      <mesh position={[0.34, 0.35, 0.86]}>
-        <sphereGeometry args={[0.08, 24, 24]} />
-        <meshStandardMaterial color="#111111" />
-      </mesh>
-      <mesh ref={mouthRef} position={[0, -0.08, 0.93]}>
-        <boxGeometry args={[0.44, 0.08, 0.06]} />
-        <meshStandardMaterial color="#111111" />
-      </mesh>
-      <mesh position={[0, -1.02, 0]}>
-        <cylinderGeometry args={[0.64, 0.88, 0.62, 48]} />
-        <meshStandardMaterial color="#222225" roughness={0.5} />
-      </mesh>
-    </group>
-  );
+const stateStyles: Record<
+	AvatarState,
+	{
+		face: string
+		ring: string
+		mouth: string
+		signal: string
+	}
+> = {
+	idle: {
+		face: "bg-violet-400",
+		ring: "border-violet-300/35 shadow-violet-500/10",
+		mouth: "h-1 bg-zinc-950",
+		signal: "bg-violet-300/50",
+	},
+	listening: {
+		face: "bg-emerald-400",
+		ring: "border-emerald-300/50 shadow-emerald-500/20",
+		mouth: "h-1 bg-zinc-950",
+		signal: "bg-emerald-300",
+	},
+	thinking: {
+		face: "bg-amber-400",
+		ring: "border-amber-300/50 shadow-amber-500/20",
+		mouth: "h-3 bg-zinc-950 animate-pulse",
+		signal: "bg-amber-300",
+	},
+	speaking: {
+		face: "bg-sky-400",
+		ring: "border-sky-300/50 shadow-sky-500/20",
+		mouth: "h-4 bg-zinc-950 animate-pulse",
+		signal: "bg-sky-300",
+	},
+	error: {
+		face: "bg-rose-400",
+		ring: "border-rose-300/50 shadow-rose-500/20",
+		mouth: "h-1 bg-zinc-950",
+		signal: "bg-rose-300",
+	},
 }
 
 export function AvatarCanvas({ state }: { state: AvatarState }) {
-  return (
-    <div className="h-full min-h-[260px] bg-[#121212]">
-      <Canvas camera={{ position: [0, 0.1, 4.1], fov: 42 }} dpr={[1, 1.6]}>
-        <color attach="background" args={["#121212"]} />
-        <ambientLight intensity={0.72} />
-        <directionalLight position={[3, 4, 5]} intensity={1.2} />
-        <pointLight
-          position={[-3, 1, 3]}
-          intensity={0.7}
-          color={stateColor[state]}
-        />
-        <AvatarModel state={state} />
-      </Canvas>
-    </div>
-  );
+	const styles = stateStyles[state]
+
+	return (
+		<div className="relative grid h-full min-h-[260px] place-items-center overflow-hidden bg-[#121212]">
+			<div className="absolute inset-x-8 top-12 h-px bg-white/10" />
+			<div className="absolute inset-x-14 bottom-10 h-px bg-white/10" />
+
+			<div
+				className={cn(
+					"relative grid size-44 place-items-center rounded-full border shadow-2xl transition",
+					styles.ring,
+				)}
+			>
+				<div className="absolute -top-6 flex gap-2">
+					<span className={cn("size-2 rounded-full", styles.signal)} />
+					<span className="size-2 rounded-full bg-white/20" />
+					<span className="size-2 rounded-full bg-white/20" />
+				</div>
+
+				<div
+					className={cn(
+						"relative size-32 rounded-full transition",
+						state === "idle" ? "" : "animate-pulse",
+						styles.face,
+					)}
+				>
+					<span className="absolute left-8 top-10 size-3 rounded-full bg-zinc-950" />
+					<span className="absolute right-8 top-10 size-3 rounded-full bg-zinc-950" />
+					<span
+						className={cn(
+							"absolute bottom-9 left-1/2 w-12 -translate-x-1/2 rounded-full transition-all",
+							styles.mouth,
+						)}
+					/>
+				</div>
+
+				<div className="absolute -bottom-8 h-12 w-28 rounded-t-full bg-zinc-800" />
+			</div>
+		</div>
+	)
 }
