@@ -6,13 +6,13 @@ on:
   pull_request:
     branches: [main, dev]
 
+permissions:
+  contents: read
+
 jobs:
   web:
     name: Frontend build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/web
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -23,7 +23,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+      - run: pnpm build:web
 
   api:
     name: Backend tests
