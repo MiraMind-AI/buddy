@@ -8,6 +8,8 @@ Each milestone is sized for two developers working approximately 4 hours per wee
 
 ## M1 - Project Foundation
 
+**Status:** Closed on 2026-05-31.
+
 **Goal:** Both developers can run the full stack locally. CI passes on every push.
 
 - Monorepo structure with pnpm workspaces
