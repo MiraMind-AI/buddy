@@ -1,205 +1,149 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 
-export type MessageRole = "user" | "assistant";
+import {
+  type ConversationDetail,
+  type ConversationMessage,
+  type ConversationSummary,
+  createConversation,
+  getConversation,
+  listConversations,
+  sendConversationMessage,
+} from "@/lib/api/conversations";
 
-export interface Message {
-  id: string;
-  role: MessageRole;
-  content: string;
-  createdAt: string;
-}
+export type Message = ConversationMessage;
+export type MessageRole = ConversationMessage["role"];
+export type { ConversationSummary };
 
-export interface ConversationSummary {
-  id: string;
-  title: string;
-  lastMessage: string;
-  messageCount: number;
-  updatedAt: string;
-}
+const conversationsKey = ["conversations"] as const;
+const conversationKey = (id: string | null) => ["conversation", id] as const;
 
-const initialConversations: ConversationSummary[] = [
-  {
-    id: "morning-check-in",
-    title: "Morning check-in",
-    lastMessage: "Let us keep today light and deliberate.",
-    messageCount: 4,
-    updatedAt: "2026-05-26T08:15:00.000Z",
-  },
-  {
-    id: "memory-review",
-    title: "Memory review",
-    lastMessage: "Three saved facts are ready for review.",
-    messageCount: 7,
-    updatedAt: "2026-05-25T18:40:00.000Z",
-  },
-  {
-    id: "voice-session-plan",
-    title: "Voice session plan",
-    lastMessage: "Manual push-to-talk is the first stable path.",
-    messageCount: 5,
-    updatedAt: "2026-05-24T11:20:00.000Z",
-  },
-];
-
-const initialMessages: Record<string, Message[]> = {
-  "morning-check-in": [
-    {
-      id: "msg-1",
-      role: "assistant",
-      content:
-        "Good morning. I kept the workspace calm and ready for the next decision.",
-      createdAt: "2026-05-26T08:11:00.000Z",
-    },
-    {
-      id: "msg-2",
-      role: "user",
-      content: "I want one useful step forward, not a pile of options.",
-      createdAt: "2026-05-26T08:12:00.000Z",
-    },
-    {
-      id: "msg-3",
-      role: "assistant",
-      content:
-        "Then I will keep the surface narrow: conversation first, memory visible, voice ready when the backend catches up.",
-      createdAt: "2026-05-26T08:15:00.000Z",
-    },
-  ],
-  "memory-review": [
-    {
-      id: "msg-4",
-      role: "assistant",
-      content: "The memory panel should always show what I believe I know.",
-      createdAt: "2026-05-25T18:40:00.000Z",
-    },
-  ],
-  "voice-session-plan": [
-    {
-      id: "msg-5",
-      role: "assistant",
-      content:
-        "Voice can start as a clear state machine before streaming arrives.",
-      createdAt: "2026-05-24T11:20:00.000Z",
-    },
-  ],
-};
-
-function createId(prefix: string) {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function createAssistantReply(content: string) {
-  const normalized = content.toLowerCase();
-
-  if (normalized.includes("memory")) {
-    return "I will keep memory visible and editable, so stored facts never become a hidden layer.";
-  }
-
-  if (normalized.includes("voice")) {
-    return "Voice can stay manual for now: clear states, quick feedback, and no raw audio stored.";
-  }
-
-  return "I have that. I will keep the next move small, concrete, and easy to verify.";
-}
+const EMPTY_LIST: ConversationSummary[] = [];
 
 export function useConversation() {
-  const [selectedConversationId, setSelectedConversationId] = useState(
-    initialConversations[0].id,
-  );
-  const [conversations, setConversations] = useState(initialConversations);
-  const [messagesByConversation, setMessagesByConversation] =
-    useState(initialMessages);
-  const [isResponding, setIsResponding] = useState(false);
+  const queryClient = useQueryClient();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const selectedConversation = useMemo(
-    () =>
-      conversations.find(
-        (conversation) => conversation.id === selectedConversationId,
-      ) ?? conversations[0],
-    [conversations, selectedConversationId],
-  );
+  const listQuery = useQuery({
+    queryKey: conversationsKey,
+    queryFn: listConversations,
+  });
 
-  const messages = messagesByConversation[selectedConversation.id] ?? [];
+  const conversations = listQuery.data ?? EMPTY_LIST;
+
+  useEffect(() => {
+    if (selectedId && conversations.some((c) => c.id === selectedId)) {
+      return;
+    }
+    if (conversations.length > 0) {
+      setSelectedId(conversations[0].id);
+    } else if (selectedId !== null) {
+      setSelectedId(null);
+    }
+  }, [conversations, selectedId]);
+
+  const detailQuery = useQuery({
+    queryKey: conversationKey(selectedId),
+    queryFn: () => getConversation(selectedId as string),
+    enabled: Boolean(selectedId),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (title?: string) => createConversation(title),
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: conversationsKey });
+      setSelectedId(created.id);
+    },
+  });
+
+  const sendMutation = useMutation({
+    mutationFn: async ({
+      conversationId,
+      content,
+    }: {
+      conversationId: string;
+      content: string;
+    }) => {
+      const userMessage: ConversationMessage = {
+        id: `pending-${Date.now()}`,
+        role: "user",
+        content,
+        created_at: new Date().toISOString(),
+      };
+
+      queryClient.setQueryData<ConversationDetail>(
+        conversationKey(conversationId),
+        (current) =>
+          current
+            ? { ...current, messages: [...current.messages, userMessage] }
+            : current,
+      );
+
+      const reply = await sendConversationMessage(conversationId, content);
+      return { conversationId, reply };
+    },
+    onSuccess: ({ conversationId, reply }) => {
+      queryClient.setQueryData<ConversationDetail>(
+        conversationKey(conversationId),
+        (current) =>
+          current
+            ? { ...current, messages: [...current.messages, reply] }
+            : current,
+      );
+      queryClient.invalidateQueries({ queryKey: conversationsKey });
+    },
+    onError: (_error, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: conversationKey(variables.conversationId),
+      });
+    },
+  });
+
+  const selectedConversation = useMemo(() => {
+    if (!selectedId) return null;
+    return conversations.find((c) => c.id === selectedId) ?? null;
+  }, [conversations, selectedId]);
+
+  const messages = detailQuery.data?.messages ?? [];
 
   async function sendMessage(content: string) {
     const trimmed = content.trim();
+    if (!trimmed) return;
 
-    if (!trimmed || isResponding) {
-      return;
+    let conversationId = selectedId;
+    if (!conversationId) {
+      const created = await createMutation.mutateAsync(undefined);
+      conversationId = created.id;
     }
 
-    const now = new Date().toISOString();
-    const userMessage: Message = {
-      id: createId("user"),
-      role: "user",
-      content: trimmed,
-      createdAt: now,
-    };
+    await sendMutation.mutateAsync({ conversationId, content: trimmed });
+  }
 
-    setMessagesByConversation((current) => ({
-      ...current,
-      [selectedConversation.id]: [
-        ...(current[selectedConversation.id] ?? []),
-        userMessage,
-      ],
-    }));
-    setConversations((current) =>
-      current.map((conversation) =>
-        conversation.id === selectedConversation.id
-          ? {
-              ...conversation,
-              lastMessage: trimmed,
-              messageCount: conversation.messageCount + 1,
-              updatedAt: now,
-            }
-          : conversation,
-      ),
-    );
-
-    setIsResponding(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const assistantMessage: Message = {
-      id: createId("assistant"),
-      role: "assistant",
-      content: createAssistantReply(trimmed),
-      createdAt: new Date().toISOString(),
-    };
-
-    setMessagesByConversation((current) => ({
-      ...current,
-      [selectedConversation.id]: [
-        ...(current[selectedConversation.id] ?? []),
-        assistantMessage,
-      ],
-    }));
-    setConversations((current) =>
-      current.map((conversation) =>
-        conversation.id === selectedConversation.id
-          ? {
-              ...conversation,
-              lastMessage: assistantMessage.content,
-              messageCount: conversation.messageCount + 1,
-              updatedAt: assistantMessage.createdAt,
-            }
-          : conversation,
-      ),
-    );
-    setIsResponding(false);
+  async function startNewConversation() {
+    await createMutation.mutateAsync(undefined);
   }
 
   return {
     conversations,
     messages,
     selectedConversation,
-    selectedConversationId,
-    isResponding,
-    selectConversation: setSelectedConversationId,
+    selectedConversationId: selectedId,
+    isLoading: listQuery.isLoading || detailQuery.isLoading,
+    isResponding: sendMutation.isPending,
+    error:
+      listQuery.error ??
+      detailQuery.error ??
+      sendMutation.error ??
+      createMutation.error ??
+      null,
+    selectConversation: setSelectedId,
     sendMessage,
+    startNewConversation,
   };
 }

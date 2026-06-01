@@ -32,6 +32,7 @@ export function Shell() {
               conversations={conversation.conversations}
               selectedConversationId={conversation.selectedConversationId}
               onSelectConversation={conversation.selectConversation}
+              onCreateConversation={conversation.startNewConversation}
             />
           </Sidebar>
 
