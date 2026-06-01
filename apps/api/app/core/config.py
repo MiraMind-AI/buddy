@@ -10,6 +10,17 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
 
+    # LLM via Cloudflare Worker proxy (text/plain streaming).
+    llm_proxy_url: str = "https://pytutorai-proxy.ultrichedima.workers.dev/api/llm/complete"
+    llm_model: str = "gpt-4o-mini"
+    llm_max_words: int = 220
+    llm_timeout_seconds: float = 60.0
+    llm_system_prompt: str = (
+        "You are Buddy, a warm, attentive, professional AI companion. "
+        "Reply concisely, with empathy and clarity. "
+        "Match the user's language. Avoid disclaimers unless safety-critical."
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_prefix="BUDDY_",
