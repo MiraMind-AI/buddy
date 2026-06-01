@@ -102,7 +102,11 @@ export function AvatarScene({ state }: { state: AvatarState }) {
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
-      <directionalLight position={[-3, 1, -2]} intensity={0.35} color="#7c6af7" />
+      <directionalLight
+        position={[-3, 1, -2]}
+        intensity={0.35}
+        color="#7c6af7"
+      />
 
       <Float speed={1.1} rotationIntensity={0.25} floatIntensity={0.6}>
         <AvatarFigure state={state} />
@@ -180,13 +184,8 @@ function AvatarFigure({ state }: { state: AvatarState }) {
       const mat = ring.current.material as MeshStandardMaterial;
       mat.color.lerp(targets.accent, 0.08);
       mat.emissive.lerp(targets.emissive, 0.08);
-      const pulse =
-        state === "listening" ? 0.8 + Math.sin(t * 6) * 0.4 : 0.6;
-      mat.emissiveIntensity = MathUtils.lerp(
-        mat.emissiveIntensity,
-        pulse,
-        0.1,
-      );
+      const pulse = state === "listening" ? 0.8 + Math.sin(t * 6) * 0.4 : 0.6;
+      mat.emissiveIntensity = MathUtils.lerp(mat.emissiveIntensity, pulse, 0.1);
     }
 
     // Jaw animation (mouth opens when speaking).
@@ -203,15 +202,10 @@ function AvatarFigure({ state }: { state: AvatarState }) {
     }
 
     // Eyes — subtle blink and color hint.
-    const blink =
-      Math.sin(t * 0.7) > 0.97 ? 0.12 : 1; // brief blink every few seconds
+    const blink = Math.sin(t * 0.7) > 0.97 ? 0.12 : 1; // brief blink every few seconds
     [eyeL, eyeR].forEach((ref) => {
       if (!ref.current) return;
-      ref.current.scale.y = MathUtils.lerp(
-        ref.current.scale.y,
-        blink,
-        0.4,
-      );
+      ref.current.scale.y = MathUtils.lerp(ref.current.scale.y, blink, 0.4);
       const mat = ref.current.material as MeshStandardMaterial;
       mat.emissive.lerp(targets.accent, 0.1);
       mat.emissiveIntensity = MathUtils.lerp(
