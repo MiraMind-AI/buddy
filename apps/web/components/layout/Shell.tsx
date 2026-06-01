@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { MemoryPanel } from "@/components/memory/MemoryPanel";
 import { VoiceButton } from "@/components/voice/VoiceButton";
 import { useAvatar } from "@/features/avatar/useAvatar";
+import { useSpeaking } from "@/features/avatar/useSpeaking";
 import { useConversation } from "@/features/conversation/useConversation";
 import { useMemory } from "@/features/memory/useMemory";
 import { useVoice } from "@/features/voice/useVoice";
@@ -17,9 +18,12 @@ export function Shell() {
   const conversation = useConversation();
   const memory = useMemory();
   const voice = useVoice();
+  const isSpeaking = useSpeaking(conversation.messages);
   const avatar = useAvatar({
     isListening: voice.isListening,
     isResponding: conversation.isResponding,
+    isSpeaking,
+    hasError: conversation.responseFailed,
   });
 
   return (

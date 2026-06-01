@@ -136,6 +136,9 @@ export function useConversation() {
     selectedConversationId: selectedId,
     isLoading: listQuery.isLoading || detailQuery.isLoading,
     isResponding: sendMutation.isPending,
+    // True only when the most recent reply attempt failed — drives the
+    // avatar's transient "error" state without reacting to passive load errors.
+    responseFailed: sendMutation.isError,
     error:
       listQuery.error ??
       detailQuery.error ??

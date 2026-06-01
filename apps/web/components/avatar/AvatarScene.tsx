@@ -221,6 +221,18 @@ function AvatarFigure({ state }: { state: AvatarState }) {
       );
     });
 
+    // Wandering gaze (micro-saccades) so the eyes feel alive instead of fixed.
+    const gazeX = Math.sin(t * 0.5) * 0.025 + Math.sin(t * 1.3) * 0.008;
+    const gazeY = Math.cos(t * 0.4) * 0.018;
+    if (eyeL.current) {
+      eyeL.current.position.x = -0.28 + gazeX;
+      eyeL.current.position.y = 0.12 + gazeY;
+    }
+    if (eyeR.current) {
+      eyeR.current.position.x = 0.28 + gazeX;
+      eyeR.current.position.y = 0.12 + gazeY;
+    }
+
     // Inner glow light follows palette.
     if (innerLight.current) {
       innerLight.current.color.lerp(targets.emissive, 0.1);
