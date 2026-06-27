@@ -9,6 +9,15 @@ const avatarLabels: Record<AvatarState, string> = {
   error: "Needs attention",
 };
 
+const voiceLabels: Record<VoiceState, string> = {
+  idle: "Ready",
+  listening: "Listening",
+  sending: "Sending",
+  speaking: "Speaking",
+  unsupported: "Unsupported",
+  error: "Attention",
+};
+
 export function Header({
   voiceState,
   avatarState,
@@ -38,7 +47,7 @@ export function Header({
           {avatarLabels[avatarState]}
         </span>
         <span className="inline-flex h-9 items-center rounded-lg border border-amber-700/10 bg-amber-50 px-3 text-amber-900">
-          Voice {voiceState}
+          Voice {voiceLabels[voiceState]}
         </span>
         <span className="inline-flex h-9 items-center rounded-lg border border-black/5 bg-[#f6f7f2] px-3 text-[#46514b]">
           {memoryCount} memories

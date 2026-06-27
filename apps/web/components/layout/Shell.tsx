@@ -9,7 +9,6 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { MemoryPanel } from "@/components/memory/MemoryPanel";
 import { VoiceButton } from "@/components/voice/VoiceButton";
 import { useAvatar } from "@/features/avatar/useAvatar";
-import { useSpeaking } from "@/features/avatar/useSpeaking";
 import { useConversation } from "@/features/conversation/useConversation";
 import { useMemory } from "@/features/memory/useMemory";
 import { useVoice } from "@/features/voice/useVoice";
@@ -17,12 +16,15 @@ import { useVoice } from "@/features/voice/useVoice";
 export function Shell() {
   const conversation = useConversation();
   const memory = useMemory();
-  const voice = useVoice();
-  const isSpeaking = useSpeaking(conversation.messages);
+  const voice = useVoice({
+    messages: conversation.messages,
+    isResponding: conversation.isResponding,
+    onSendMessage: conversation.sendMessage,
+  });
   const avatar = useAvatar({
     isListening: voice.isListening,
-    isResponding: conversation.isResponding,
-    isSpeaking,
+    isResponding: conversation.isResponding || voice.isSending,
+    isSpeaking: voice.isSpeaking,
     hasError: conversation.responseFailed,
   });
   const activeTitle =
@@ -50,7 +52,7 @@ export function Shell() {
         ) : null}
 
         <div className="grid flex-1 gap-3 lg:grid-cols-[280px_minmax(0,1fr)_360px]">
-          <Sidebar>
+          <Sidebar className="order-3 lg:order-none">
             <ConversationList
               conversations={conversation.conversations}
               selectedConversationId={conversation.selectedConversationId}
@@ -59,7 +61,7 @@ export function Shell() {
             />
           </Sidebar>
 
-          <section className="grid min-h-[560px] overflow-hidden rounded-lg border border-black/5 bg-white shadow-sm lg:h-[calc(100dvh-104px)] lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)_auto]">
+          <section className="order-2 grid min-h-[560px] overflow-hidden rounded-lg border border-black/5 bg-white shadow-sm lg:order-none lg:h-[calc(100dvh-104px)] lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)_auto]">
             <div className="flex items-center justify-between gap-3 border-b border-black/5 bg-white px-4 py-3">
               <div className="min-w-0">
                 <p className="text-xs uppercase text-[#7b827c]">Conversation</p>
@@ -84,16 +86,16 @@ export function Shell() {
             />
           </section>
 
-          <aside className="grid gap-3 lg:h-[calc(100dvh-104px)] lg:grid-rows-[minmax(300px,0.9fr)_auto_minmax(0,1fr)]">
-            <section className="relative min-h-[320px] overflow-hidden rounded-lg border border-black/5 bg-[#101916] shadow-sm">
+          <aside className="order-1 grid gap-3 lg:order-none lg:h-[calc(100dvh-104px)] lg:grid-rows-[minmax(380px,1.08fr)_auto_minmax(0,0.82fr)]">
+            <section className="relative min-h-[380px] overflow-hidden rounded-lg border border-black/10 bg-[#07090a] shadow-[0_22px_70px_rgba(9,11,13,0.18)]">
               <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 p-4">
-                <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 backdrop-blur-xl">
+                <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2 backdrop-blur-xl">
                   <p className="text-xs uppercase text-white/45">Presence</p>
                   <p className="mt-1 text-sm font-medium text-white">
                     {avatar.label}
                   </p>
                 </div>
-                <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-right backdrop-blur-xl">
+                <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-right backdrop-blur-xl">
                   <p className="text-xs uppercase text-white/45">Session</p>
                   <p className="mt-1 max-w-40 truncate text-sm font-medium text-white">
                     {activeTitle}
@@ -106,7 +108,14 @@ export function Shell() {
             <VoiceButton
               state={voice.state}
               isListening={voice.isListening}
+              isSpeaking={voice.isSpeaking}
+              isSending={voice.isSending}
+              autoSpeak={voice.autoSpeak}
+              transcript={voice.transcript}
+              errorMessage={voice.errorMessage}
               onToggle={voice.toggleVoice}
+              onCancelSpeech={voice.cancelSpeech}
+              onToggleAutoSpeak={voice.toggleAutoSpeak}
             />
 
             <MemoryPanel

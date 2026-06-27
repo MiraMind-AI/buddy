@@ -1,8 +1,21 @@
 import type { ReactNode } from "react";
 
-export function Sidebar({ children }: { children: ReactNode }) {
+import { cn } from "@/lib/utils/cn";
+
+export function Sidebar({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <aside className="flex min-h-[220px] flex-col overflow-hidden rounded-lg bg-[#13221d] p-3 text-white shadow-sm lg:h-[calc(100dvh-104px)] lg:min-h-0">
+    <aside
+      className={cn(
+        "flex min-h-[220px] flex-col overflow-hidden rounded-lg bg-[#13221d] p-3 text-white shadow-sm lg:h-[calc(100dvh-104px)] lg:min-h-0",
+        className,
+      )}
+    >
       <div className="mb-3 flex items-center justify-between gap-3 px-1">
         <div>
           <h2 className="text-sm font-semibold text-white">Conversations</h2>
