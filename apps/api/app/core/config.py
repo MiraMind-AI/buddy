@@ -8,7 +8,12 @@ class Settings(BaseSettings):
     app_name: str = "Buddy API"
     version: str = "0.1.0"
     api_v1_prefix: str = "/api/v1"
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    cors_origins: list[str] = Field(
+        default_factory=lambda: [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ],
+    )
 
     # LLM via Cloudflare Worker proxy (text/plain streaming).
     llm_proxy_url: str = "https://pytutorai-proxy.ultrichedima.workers.dev/api/llm/complete"

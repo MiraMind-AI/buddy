@@ -17,17 +17,17 @@ export function ConversationList({
       <button
         type="button"
         onClick={onCreateConversation}
-        className="flex h-11 w-full items-center justify-between rounded-lg border border-teal-200/20 bg-teal-200/10 px-3 text-left text-sm font-medium text-teal-50 transition hover:border-teal-200/35 hover:bg-teal-200/15 focus:outline-none focus:ring-2 focus:ring-teal-200/30"
+        className="flex h-11 w-full items-center justify-between rounded-lg bg-[#9ff3df] px-3 text-left text-sm font-semibold text-[#10211c] shadow-sm transition hover:bg-[#b9f8ea] focus:outline-none focus:ring-2 focus:ring-white/40"
       >
         <span>New conversation</span>
-        <span className="grid size-7 place-items-center rounded-md bg-teal-100 text-lg leading-none text-teal-950">
+        <span className="grid size-7 place-items-center rounded-md bg-[#10211c] text-lg leading-none text-white">
           +
         </span>
       </button>
 
       <div className="min-h-0 space-y-2 overflow-y-auto pr-1">
       {conversations.length === 0 ? (
-        <p className="rounded-lg border border-white/10 bg-white/[0.04] p-3 text-sm leading-5 text-stone-400">
+        <p className="rounded-lg border border-white/10 bg-white/10 p-3 text-sm leading-5 text-white/70">
           No conversations yet.
         </p>
       ) : null}
@@ -41,24 +41,24 @@ export function ConversationList({
             aria-pressed={selected}
             onClick={() => onSelectConversation(conversation.id)}
             className={cn(
-              "grid w-full gap-2 rounded-lg border p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-teal-200/25",
+              "grid w-full gap-2 rounded-lg border p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-white/30",
               selected
-                ? "border-teal-200/45 bg-teal-200/[0.12] shadow-lg shadow-teal-950/20"
-                : "border-white/10 bg-white/[0.04] hover:border-white/15 hover:bg-white/[0.07]",
+                ? "border-[#9ff3df]/70 bg-white/[0.14]"
+                : "border-white/10 bg-white/[0.06] hover:border-white/20 hover:bg-white/10",
             )}
           >
             <span className="flex min-w-0 items-start justify-between gap-3">
-              <span className="truncate text-sm font-medium text-stone-100">
+              <span className="truncate text-sm font-medium text-white">
                 {conversation.title}
               </span>
               <span
                 className={cn(
                   "mt-1 size-2 shrink-0 rounded-full",
-                  selected ? "bg-teal-200" : "bg-white/20",
+                  selected ? "bg-[#9ff3df]" : "bg-white/25",
                 )}
               />
             </span>
-            <span className="text-xs text-stone-500">
+            <span className="text-xs text-white/45">
               {conversation.message_count} messages
             </span>
           </button>

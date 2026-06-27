@@ -11,18 +11,18 @@ export function VoiceButton({
   onToggle: () => void;
 }) {
   return (
-    <section className="rounded-lg border border-white/10 bg-stone-950/70 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl">
+    <section className="rounded-lg border border-black/5 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-sm font-semibold text-stone-100">Voice</h2>
-          <p className="mt-1 text-sm capitalize text-stone-400">{state}</p>
+          <h2 className="text-sm font-semibold text-[#111411]">Voice</h2>
+          <p className="mt-1 text-sm capitalize text-[#667069]">{state}</p>
           <div className="mt-3 flex h-5 items-end gap-1">
             {[0, 1, 2, 3].map((bar) => (
               <span
                 key={bar}
                 className={cn(
                   "w-1.5 rounded-full transition-all",
-                  isListening ? "bg-teal-200" : "bg-white/20",
+                  isListening ? "bg-[#2bbfa3]" : "bg-black/15",
                   isListening && bar % 2 === 0 ? "h-5" : "h-3",
                 )}
               />
@@ -35,10 +35,10 @@ export function VoiceButton({
           aria-label={isListening ? "Stop voice input" : "Start voice input"}
           onClick={onToggle}
           className={cn(
-            "grid size-16 shrink-0 place-items-center rounded-full border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-teal-200/30",
+            "grid size-16 shrink-0 place-items-center rounded-full border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#8dc9be]",
             isListening
-              ? "border-teal-200/50 bg-teal-200 text-teal-950 shadow-lg shadow-teal-500/20"
-              : "border-white/10 bg-white/[0.07] text-stone-100 hover:bg-white/[0.11]",
+              ? "border-[#2bbfa3] bg-[#9ff3df] text-[#10211c] shadow-sm"
+              : "border-black/10 bg-[#f6f7f2] text-[#252a26] hover:bg-white",
           )}
         >
           {isListening ? "Stop" : "Talk"}
