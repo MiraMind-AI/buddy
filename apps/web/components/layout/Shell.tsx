@@ -102,7 +102,7 @@ export function Shell() {
                   </p>
                 </div>
               </div>
-              <AvatarCanvas state={avatar.state} />
+              <AvatarCanvas state={avatar.state} level={voice.level} />
             </section>
 
             <VoiceButton
@@ -112,6 +112,7 @@ export function Shell() {
               isSending={voice.isSending}
               autoSpeak={voice.autoSpeak}
               transcript={voice.transcript}
+              level={voice.level}
               errorMessage={voice.errorMessage}
               onToggle={voice.toggleVoice}
               onCancelSpeech={voice.cancelSpeech}

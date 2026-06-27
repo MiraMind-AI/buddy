@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import conversations, health
+from app.api.routes import conversations, health, voice
 from app.core.config import get_settings
 
 
@@ -19,6 +19,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router, prefix=settings.api_v1_prefix)
     app.include_router(conversations.router, prefix=settings.api_v1_prefix)
+    app.include_router(voice.router, prefix=settings.api_v1_prefix)
 
     return app
 

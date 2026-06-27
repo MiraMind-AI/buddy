@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils/cn";
 const stateLabels: Record<VoiceState, string> = {
   idle: "Ready",
   listening: "Listening",
+  transcribing: "Transcribing",
   sending: "Sending",
   speaking: "Speaking",
   unsupported: "Unsupported",
@@ -17,6 +18,7 @@ export function VoiceButton({
   isSending,
   autoSpeak,
   transcript,
+  level,
   errorMessage,
   onToggle,
   onCancelSpeech,
@@ -28,6 +30,7 @@ export function VoiceButton({
   isSending: boolean;
   autoSpeak: boolean;
   transcript: string;
+  level: number;
   errorMessage?: string | null;
   onToggle: () => void;
   onCancelSpeech: () => void;
@@ -36,6 +39,7 @@ export function VoiceButton({
   const disabled = state === "unsupported" || isSending;
   const meterActive = isListening || isSpeaking || isSending;
   const buttonLabel = isListening ? "Stop" : "Talk";
+  const normalizedLevel = Math.max(0.08, Math.min(1, level));
 
   return (
     <section className="overflow-hidden rounded-lg border border-black/5 bg-white shadow-sm">
@@ -97,16 +101,15 @@ export function VoiceButton({
               {[0, 1, 2, 3, 4, 5, 6].map((bar) => (
                 <span
                   key={bar}
+                  style={{
+                    height: meterActive
+                      ? `${18 + normalizedLevel * (bar % 2 === 0 ? 30 : 22)}px`
+                      : undefined,
+                  }}
                   className={cn(
                     "w-1.5 rounded-full transition-all duration-300",
                     meterActive ? "bg-[#159a84]" : "bg-[#7f8a83]/45",
-                    meterActive && bar % 3 === 0
-                      ? "h-11"
-                      : meterActive && bar % 2 === 0
-                        ? "h-8"
-                        : meterActive
-                          ? "h-5"
-                          : "h-3",
+                    !meterActive && (bar % 3 === 0 ? "h-5" : "h-3"),
                   )}
                 />
               ))}

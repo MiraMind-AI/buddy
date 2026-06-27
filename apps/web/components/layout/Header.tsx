@@ -12,6 +12,7 @@ const avatarLabels: Record<AvatarState, string> = {
 const voiceLabels: Record<VoiceState, string> = {
   idle: "Ready",
   listening: "Listening",
+  transcribing: "Transcribing",
   sending: "Sending",
   speaking: "Speaking",
   unsupported: "Unsupported",

@@ -25,6 +25,11 @@ class Settings(BaseSettings):
         "Reply concisely, with empathy and clarity. "
         "Match the user's language. Avoid disclaimers unless safety-critical."
     )
+    openai_api_key: str | None = None
+    audio_transcription_model: str = "whisper-1"
+    audio_speech_model: str = "tts-1"
+    audio_speech_voice: str = "nova"
+    audio_max_upload_mb: int = 20
 
     model_config = SettingsConfigDict(
         env_file=".env",

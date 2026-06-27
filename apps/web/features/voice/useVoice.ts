@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Message } from "@/features/conversation/useConversation";
+import { createVoiceSpeech, transcribeVoice } from "@/lib/api/voice";
 
 export type VoiceState =
   | "idle"
   | "listening"
+  | "transcribing"
   | "sending"
   | "speaking"
   | "unsupported"
@@ -18,68 +20,52 @@ interface UseVoiceOptions {
   onSendMessage: (content: string) => Promise<void> | void;
 }
 
-interface BrowserSpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  maxAlternatives: number;
-  onend: (() => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-}
-
-interface SpeechRecognitionEventLike extends Event {
-  resultIndex: number;
-  results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognitionErrorEventLike extends Event {
-  error: string;
-  message?: string;
-}
-
-type SpeechRecognitionConstructor = new () => BrowserSpeechRecognition;
-
-type SpeechWindow = Window &
-  typeof globalThis & {
-    SpeechRecognition?: SpeechRecognitionConstructor;
-    webkitSpeechRecognition?: SpeechRecognitionConstructor;
-  };
-
-const DEFAULT_LANGUAGE = "de-DE";
-
-function getRecognitionConstructor(): SpeechRecognitionConstructor | null {
-  if (typeof window === "undefined") return null;
-  const speechWindow = window as SpeechWindow;
-  return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition ?? null;
-}
-
-function getSpeechLanguage() {
-  if (typeof navigator === "undefined") return DEFAULT_LANGUAGE;
-  return navigator.language?.startsWith("de") ? navigator.language : DEFAULT_LANGUAGE;
-}
+const AUDIO_MIME_TYPES = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/mp4",
+  "audio/ogg;codecs=opus",
+];
 
 function toErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
   return "Voice could not complete the last action.";
 }
 
-function pickVoiceForLanguage() {
+function getSpeechLanguage() {
+  if (typeof navigator === "undefined") return "de-DE";
+  return navigator.language?.startsWith("de") ? navigator.language : "de-DE";
+}
+
+function pickRecorderMimeType() {
+  if (typeof MediaRecorder === "undefined") return "";
+  return AUDIO_MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
+}
+
+function canRecordAudio() {
+  return Boolean(
+    typeof navigator !== "undefined" &&
+      typeof navigator.mediaDevices?.getUserMedia === "function" &&
+      typeof MediaRecorder !== "undefined",
+  );
+}
+
+function speakWithBrowser(text: string, onStart: () => void, onDone: () => void) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-    return null;
+    return false;
   }
 
-  const language = getSpeechLanguage();
-  const voices = window.speechSynthesis.getVoices();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = getSpeechLanguage();
+  utterance.rate = 1;
+  utterance.pitch = 0.96;
+  utterance.onstart = onStart;
+  utterance.onend = onDone;
+  utterance.onerror = onDone;
 
-  return (
-    voices.find((voice) => voice.lang === language) ??
-    voices.find((voice) => voice.lang.startsWith(language.slice(0, 2))) ??
-    null
-  );
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+  return true;
 }
 
 export function useVoice({
@@ -90,134 +76,230 @@ export function useVoice({
   const [state, setState] = useState<VoiceState>("idle");
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [transcript, setTranscript] = useState("");
-  const [interimTranscript, setInterimTranscript] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [level, setLevel] = useState(0);
   const [isSupported, setIsSupported] = useState(true);
 
-  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
-  const latestTranscriptRef = useRef("");
-  const shouldSendOnEndRef = useRef(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const awaitingVoiceReplyRef = useRef(false);
   const lastSpokenMessageIdRef = useRef<string | null>(null);
   const sendMessageRef = useRef(onSendMessage);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     sendMessageRef.current = onSendMessage;
   }, [onSendMessage]);
 
   useEffect(() => {
-    const supported = Boolean(getRecognitionConstructor());
+    const supported = canRecordAudio();
     setIsSupported(supported);
     setState((current) => (!supported && current === "idle" ? "unsupported" : current));
   }, []);
 
-  const sendCapturedTranscript = useCallback(async () => {
-    const captured = latestTranscriptRef.current.trim();
-    setInterimTranscript("");
-    setTranscript(captured);
-
-    if (!captured) {
-      setState("idle");
-      return;
+  const stopMeter = useCallback(() => {
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
     }
-
-    setState("sending");
-    awaitingVoiceReplyRef.current = true;
-
-    try {
-      await sendMessageRef.current(captured);
-      setState((current) => (current === "sending" ? "idle" : current));
-    } catch (error) {
-      awaitingVoiceReplyRef.current = false;
-      setErrorMessage(toErrorMessage(error));
-      setState("error");
-    }
+    void audioContextRef.current?.close();
+    audioContextRef.current = null;
+    analyserRef.current = null;
+    setLevel(0);
   }, []);
 
-  const stopListening = useCallback(() => {
-    shouldSendOnEndRef.current = true;
-    recognitionRef.current?.stop();
+  const stopStream = useCallback(() => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    stopMeter();
+  }, [stopMeter]);
+
+  const startMeter = useCallback((stream: MediaStream) => {
+    const AudioContextCtor = window.AudioContext ?? window.webkitAudioContext;
+    if (!AudioContextCtor) return;
+
+    const audioContext = new AudioContextCtor();
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.78;
+    audioContext.createMediaStreamSource(stream).connect(analyser);
+
+    audioContextRef.current = audioContext;
+    analyserRef.current = analyser;
+
+    const samples = new Uint8Array(analyser.frequencyBinCount);
+    const tick = () => {
+      analyser.getByteTimeDomainData(samples);
+      let sum = 0;
+      samples.forEach((value) => {
+        const centered = (value - 128) / 128;
+        sum += centered * centered;
+      });
+      const rms = Math.sqrt(sum / samples.length);
+      setLevel(Math.min(1, rms * 5.5));
+      animationFrameRef.current = requestAnimationFrame(tick);
+    };
+    tick();
   }, []);
 
   const cancelSpeech = useCallback(() => {
+    audioRef.current?.pause();
+    audioRef.current = null;
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
     setState((current) => (current === "speaking" ? "idle" : current));
   }, []);
 
-  const startListening = useCallback(() => {
-    const Recognition = getRecognitionConstructor();
-    if (!Recognition) {
+  const playAssistantReply = useCallback(
+    async (text: string) => {
+      if (!autoSpeak || !text.trim()) return;
+
+      cancelSpeech();
+      setErrorMessage(null);
+
+      try {
+        const speech = await createVoiceSpeech(text);
+        const objectUrl = URL.createObjectURL(speech);
+        objectUrlRef.current = objectUrl;
+
+        const audio = new Audio(objectUrl);
+        audioRef.current = audio;
+        audio.onplaying = () => setState("speaking");
+        audio.onended = () => {
+          URL.revokeObjectURL(objectUrl);
+          objectUrlRef.current = null;
+          audioRef.current = null;
+          setState((current) => (current === "speaking" ? "idle" : current));
+        };
+        audio.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          objectUrlRef.current = null;
+          audioRef.current = null;
+          setState((current) => (current === "speaking" ? "idle" : current));
+        };
+
+        await audio.play();
+      } catch (error) {
+        const usedBrowserSpeech = speakWithBrowser(
+          text,
+          () => setState("speaking"),
+          () => setState((current) => (current === "speaking" ? "idle" : current)),
+        );
+        if (!usedBrowserSpeech) {
+          setErrorMessage(toErrorMessage(error));
+          setState("error");
+        }
+      }
+    },
+    [autoSpeak, cancelSpeech],
+  );
+
+  const processRecording = useCallback(async () => {
+    stopStream();
+    const mimeType = recorderRef.current?.mimeType || "audio/webm";
+    recorderRef.current = null;
+    const chunks = chunksRef.current;
+    chunksRef.current = [];
+
+    if (chunks.length === 0) {
+      setErrorMessage("No microphone audio was captured.");
+      setState("error");
+      return;
+    }
+
+    setState("transcribing");
+    const recording = new Blob(chunks, { type: mimeType });
+
+    try {
+      const text = await transcribeVoice(recording);
+      if (!text.trim()) {
+        setErrorMessage("No speech was detected.");
+        setState("error");
+        return;
+      }
+
+      setTranscript(text);
+      setState("sending");
+      awaitingVoiceReplyRef.current = true;
+      await sendMessageRef.current(text);
+      setState((current) => (current === "sending" ? "idle" : current));
+    } catch (error) {
+      awaitingVoiceReplyRef.current = false;
+      setErrorMessage(toErrorMessage(error));
+      setState("error");
+    }
+  }, [stopStream]);
+
+  const startListening = useCallback(async () => {
+    if (!canRecordAudio()) {
       setIsSupported(false);
       setState("unsupported");
-      setErrorMessage("Voice input is supported in Chrome and Edge.");
+      setErrorMessage("Microphone recording is not supported in this browser.");
       return;
     }
 
     cancelSpeech();
     setErrorMessage(null);
     setTranscript("");
-    setInterimTranscript("");
-    latestTranscriptRef.current = "";
-    shouldSendOnEndRef.current = true;
-
-    const recognition = new Recognition();
-    recognition.lang = getSpeechLanguage();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-
-    recognition.onresult = (event) => {
-      let finalText = "";
-      let interimText = "";
-
-      for (let index = 0; index < event.results.length; index += 1) {
-        const result = event.results[index];
-        const resultText = result[0]?.transcript ?? "";
-        if (result.isFinal) {
-          finalText += resultText;
-        } else {
-          interimText += resultText;
-        }
-      }
-
-      latestTranscriptRef.current = `${finalText} ${interimText}`.trim();
-      setTranscript(finalText.trim());
-      setInterimTranscript(interimText.trim());
-    };
-
-    recognition.onerror = (event) => {
-      shouldSendOnEndRef.current = false;
-      const message =
-        event.error === "not-allowed"
-          ? "Microphone permission was blocked."
-          : event.error === "no-speech"
-            ? "No speech was detected."
-            : event.message || `Voice input failed: ${event.error}.`;
-      setErrorMessage(message);
-      setState("error");
-    };
-
-    recognition.onend = () => {
-      recognitionRef.current = null;
-      if (shouldSendOnEndRef.current) {
-        void sendCapturedTranscript();
-      }
-    };
-
-    recognitionRef.current = recognition;
-    setState("listening");
+    chunksRef.current = [];
 
     try {
-      recognition.start();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          autoGainControl: true,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      });
+
+      streamRef.current = stream;
+      startMeter(stream);
+
+      const mimeType = pickRecorderMimeType();
+      const recorder = new MediaRecorder(
+        stream,
+        mimeType ? { mimeType } : undefined,
+      );
+      recorderRef.current = recorder;
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunksRef.current.push(event.data);
+      };
+      recorder.onerror = () => {
+        stopStream();
+        setErrorMessage("Microphone recording failed.");
+        setState("error");
+      };
+      recorder.onstop = () => {
+        void processRecording();
+      };
+
+      recorder.start(250);
+      setState("listening");
     } catch (error) {
-      recognitionRef.current = null;
-      shouldSendOnEndRef.current = false;
+      stopStream();
       setErrorMessage(toErrorMessage(error));
       setState("error");
     }
-  }, [cancelSpeech, sendCapturedTranscript]);
+  }, [cancelSpeech, processRecording, startMeter, stopStream]);
+
+  const stopListening = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state === "inactive") {
+      return;
+    }
+    setState("transcribing");
+    recorder.stop();
+  }, []);
 
   const toggleVoice = useCallback(() => {
     if (state === "listening") {
@@ -225,11 +307,11 @@ export function useVoice({
       return;
     }
 
-    if (state === "sending" || isResponding) {
+    if (state === "transcribing" || state === "sending" || isResponding) {
       return;
     }
 
-    startListening();
+    void startListening();
   }, [isResponding, startListening, state, stopListening]);
 
   useEffect(() => {
@@ -240,56 +322,45 @@ export function useVoice({
     lastSpokenMessageIdRef.current = last.id;
     if (!awaitingVoiceReplyRef.current) return;
     awaitingVoiceReplyRef.current = false;
-
-    if (!autoSpeak || typeof window === "undefined" || !("speechSynthesis" in window)) {
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(last.content);
-    utterance.lang = getSpeechLanguage();
-    utterance.rate = 1;
-    utterance.pitch = 0.96;
-
-    try {
-      utterance.voice = pickVoiceForLanguage();
-    } catch {
-      utterance.voice = null;
-    }
-
-    utterance.onstart = () => setState("speaking");
-    utterance.onend = () => setState((current) => (current === "speaking" ? "idle" : current));
-    utterance.onerror = () => setState((current) => (current === "speaking" ? "idle" : current));
-
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  }, [autoSpeak, messages]);
+    void playAssistantReply(last.content);
+  }, [messages, playAssistantReply]);
 
   useEffect(() => {
     return () => {
-      shouldSendOnEndRef.current = false;
-      recognitionRef.current?.abort();
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
+      recorderRef.current?.state !== "inactive" && recorderRef.current?.stop();
+      stopStream();
+      cancelSpeech();
     };
-  }, []);
+  }, [cancelSpeech, stopStream]);
 
-  const displayedTranscript = useMemo(
-    () => [transcript, interimTranscript].filter(Boolean).join(" ").trim(),
-    [interimTranscript, transcript],
-  );
+  const statusText = useMemo(() => {
+    if (errorMessage) return errorMessage;
+    if (transcript) return transcript;
+    if (state === "listening") return "Recording through the server voice channel.";
+    if (state === "transcribing") return "Transcribing captured audio.";
+    if (state === "sending") return "Sending the voice message.";
+    if (state === "speaking") return "Playing Buddy's spoken reply.";
+    return "Server voice channel ready.";
+  }, [errorMessage, state, transcript]);
 
   return {
     state: isSupported ? state : "unsupported",
     isListening: state === "listening",
-    isSending: state === "sending",
+    isSending: state === "transcribing" || state === "sending",
     isSpeaking: state === "speaking",
     isSupported,
     autoSpeak,
-    transcript: displayedTranscript,
+    transcript: statusText,
     errorMessage,
+    level,
     toggleAutoSpeak: () => setAutoSpeak((current) => !current),
     toggleVoice,
     cancelSpeech,
   };
+}
+
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
 }

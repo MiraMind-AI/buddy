@@ -12,13 +12,19 @@ const AvatarScene = dynamic(
   },
 );
 
-export function AvatarCanvas({ state }: { state: AvatarState }) {
+export function AvatarCanvas({
+  state,
+  level = 0,
+}: {
+  state: AvatarState;
+  level?: number;
+}) {
   return (
     <div className="relative h-full min-h-[320px] w-full overflow-hidden bg-[radial-gradient(circle_at_50%_28%,rgba(255,255,255,0.16),transparent_12rem),radial-gradient(circle_at_52%_52%,rgba(73,215,195,0.22),transparent_17rem),linear-gradient(180deg,#151a1d_0%,#090b0d_62%,#050607_100%)]">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:36px_36px] opacity-30" />
       <div className="pointer-events-none absolute inset-x-10 bottom-8 h-24 rounded-full bg-[#49d7c3]/12 blur-3xl" />
       <AvatarFallback />
-      <AvatarScene state={state} />
+      <AvatarScene state={state} level={level} />
     </div>
   );
 }
